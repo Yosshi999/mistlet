@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 from typing import Optional
-import tyro
-
 
 @dataclass
 class Args:
@@ -22,7 +20,7 @@ class Args:
     """The step of Mist"""
     input_size: int = 512
     """The shorter length of input for Mist"""
-    block_num: int = 1
+    block_num: int = 4
     """The number of partitioned blocks"""
     mask: bool = False
     """Whether to mask certain region of Mist or not. Work only when input_dir_path is None. """
@@ -34,7 +32,3 @@ class Args:
     """Use CUDA"""
     random_seed: int = 0
     """Random Seed"""
-
-
-def parse_args() -> Args:
-    return tyro.cli(Args)

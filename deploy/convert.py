@@ -99,12 +99,12 @@ if __name__ == "__main__":
         print(zx.shape)
 
     if True:
-        print("===== ONNX Generation =====")
-
+        print("===== ONNX Generation Enc =====")
+        f = io.BytesIO()
         torch.onnx.export(
             net,
             (x,),
-            "vae_encoder_unopt.onnx",
+            f,
             input_names=["image"],
             output_names=["latents"],
             dynamic_axes={
@@ -112,16 +112,36 @@ if __name__ == "__main__":
                 "latents": {0: "batch", 2: "height_stride8", 3: "width_stride8"},
             },
         )
-
-    if True:
-        print("===== ONNX Optimization =====")
         # optimize onnx
         opt = onnxruntime.SessionOptions()
         # NOTE: Greater than ORT_ENABLE_EXTENDED may contain hardware specific optimizations.
         opt.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_BASIC
-        opt.optimized_model_filepath = "vae_encoder.onnx"
+        opt.optimized_model_filepath = "app/vae_encoder.onnx"
         opt.log_severity_level = 1  # log INFO
-        _sess = onnxruntime.InferenceSession("vae_encoder_unopt.onnx", opt, providers=["CPUExecutionProvider"])
+        _sess = onnxruntime.InferenceSession(f.getvalue(), opt, providers=["CPUExecutionProvider"])
+
+    if True:
+        print("===== ONNX Generation Dec =====")
+        net_dec = torch.nn.Sequential(vae.post_quant_conv, vae.decoder)
+        f = io.BytesIO()
+        torch.onnx.export(
+            net_dec,
+            (zx,),
+            f,
+            input_names=["latents"],
+            output_names=["image"],
+            dynamic_axes={
+                "latents": {0: "batch", 2: "height_stride8", 3: "width_stride8"},
+                "image": {0: "batch", 2: "height", 3: "width"},
+            },
+        )
+        # optimize onnx
+        opt = onnxruntime.SessionOptions()
+        # NOTE: Greater than ORT_ENABLE_EXTENDED may contain hardware specific optimizations.
+        opt.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_BASIC
+        opt.optimized_model_filepath = "app/vae_decoder.onnx"
+        opt.log_severity_level = 1  # log INFO
+        _sess = onnxruntime.InferenceSession(f.getvalue(), opt, providers=["CPUExecutionProvider"])
 
     if True:
         # See https://github.com/microsoft/onnxruntime/blob/a457c1df80f391ea6de0ab1d454297716976dbf3/orttraining/orttraining/python/training/experimental/gradient_graph/_gradient_graph_tools.py#L13
@@ -152,12 +172,12 @@ if __name__ == "__main__":
         new_model = f.getvalue()
         builder = GradientGraphBuilder(new_model, {"loss"}, {"image"}, "loss")
         builder.build()
-        builder.save("vae_encoder_grad.onnx")
+        builder.save("app/vae_encoder_grad.onnx")
         
     if True:
         print("===== ONNX-Training Test =====")
         opt = onnxruntime.SessionOptions()
-        sess = onnxruntime.InferenceSession("vae_encoder_grad.onnx", opt, providers=["CPUExecutionProvider"])
+        sess = onnxruntime.InferenceSession("app/vae_encoder_grad.onnx", opt, providers=["CPUExecutionProvider"])
         print([n.name for n in sess.get_outputs()])
         loss, dloss = sess.run(["loss", "image_grad"], {"image": x.numpy(), "target_latents": zx.numpy()})
         print("error", loss)
