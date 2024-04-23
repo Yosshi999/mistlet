@@ -1,6 +1,9 @@
 name: package
 run-name: packaging emb
-on: push
+on:
+  push:
+    tags:
+      - "v*"
 
 jobs:
   build:
