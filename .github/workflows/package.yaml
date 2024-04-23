@@ -26,6 +26,7 @@ jobs:
           7z x python-3.11.9-embed-amd64.zip -o* -y
           Move-Item -Path python-3.11.9-embed-amd64/* -Destination plugin/
       - name: Move items
+        run: |
           mkdir -p plugin/app
           Move-Item -Path app/*.onnx -Destination plugin/app
           Move-Item -Path main.py -Destination plugin/
