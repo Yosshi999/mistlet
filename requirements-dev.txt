@@ -1,6 +1,7 @@
 accelerate
 diffusers
-lpips
 onnxruntime-training
 onnx
+pillow
+tqdm
 tyro
