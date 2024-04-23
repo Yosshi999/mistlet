@@ -2,11 +2,9 @@ from abc import abstractmethod, ABCMeta
 from itertools import product
 from pathlib import Path
 
-from diffusers import AutoencoderKL
 from PIL import Image
 import numpy as np
 import onnxruntime
-import torch
 import tyro
 from tqdm import tqdm
 
@@ -32,14 +30,14 @@ class LinfBoundary(Boundary):
     def project(self, x: np.ndarray) -> np.ndarray:
         return np.clip(x, -self.bound, self.bound)
 
-def to_tensor(img: Image.Image | np.ndarray) -> torch.Tensor:
+def to_tensor(img: Image.Image | np.ndarray) -> np.ndarray:
     """resize [0, 255] -> [-1, 1] and permute (H, W, C) -> (N, C, H, W)"""
     img = np.asarray(img).astype(np.float32) / 255. * 2 - 1
     img = img.transpose(2, 0, 1)[None]
     img = np.ascontiguousarray(img)
     return img
 
-def from_tensor(x: torch.Tensor) -> Image.Image:
+def from_tensor(x: np.ndarray) -> Image.Image:
     """inverse of pil2vae"""
     x = x[0].transpose(1, 2, 0)
     x = np.clip((x + 1) / 2 * 255, 0, 255).astype(np.uint8)

@@ -1,3 +1,5 @@
 numpy
 onnxruntime-training
 pillow
+tqdm
+tyro
